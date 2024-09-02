@@ -1,0 +1,6 @@
+venv
+temp*
+images/*
+backups
+test
+*_temp*
