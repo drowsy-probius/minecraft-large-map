@@ -4,28 +4,17 @@ import threading
 import subprocess
 import glob
 import time
+import configparser
 from rich.progress import Progress, TimeElapsedColumn, BarColumn, TaskID
-
-wpscript_path = "C:/Program Files/WorldPainter/wpscript.exe"
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 ###############################################################
 
-
 image_dir = os.path.join(current_dir, './temp-1')
 output_dir = os.path.join(current_dir, './temp-2')
 
-png_files = glob.glob(os.path.join(image_dir, 'tile_*.png'))
-
 script_contents = ""
-with open(os.path.join(current_dir, 'script.js'), 'r') as file:
-    script_contents = file.read()
-
-
-shutil.rmtree(output_dir, ignore_errors=True)
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
 
 def replace_params(script_contents, kwargs):
     for key, value in kwargs.items():
@@ -37,12 +26,10 @@ def run_subprocess(command, progress: Progress, task_id: TaskID):
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     
     # 프로세스 실행 중 진행 상황을 업데이트하는 함수
-    start_time = time.time()
     def update_progress():
         while process.poll() is None:
-            elapsed_time = time.time() - start_time
-            progress.update(task_id, advance=elapsed_time * 0.1)
-            time.sleep(0.1)  # 프로세스 진행도 업데이트 주기 설정
+            progress.update(task_id)
+            time.sleep(0.5)  # 프로세스 진행도 업데이트 주기 설정
 
     # stdout 출력 스레드
     def handle_stdout(stdout):
@@ -78,46 +65,74 @@ def run_subprocess(command, progress: Progress, task_id: TaskID):
     stderr_thread.join()
     progress_thread.join()
 
+def convert_to_worlds(wpscript_path: str, tile_size: int, scale: int, png_files: list):
+    scale_ratio = scale / 100
 
-with Progress(
-    "[progress.description]{task.description}",
-    BarColumn(),
-    "[progress.percentage]{task.percentage:>3.0f}%",
-    TimeElapsedColumn(),
-) as progress:
-    # 전체 작업 진행도에 대한 태스크 생성
-    main_task = progress.add_task("[cyan]Processing PNG files...", total=len(png_files))
+    with Progress(
+        "[progress.description]{task.description}",
+        BarColumn(),
+        "[progress.percentage]{task.percentage:>3.0f}%",
+        TimeElapsedColumn(),
+    ) as progress:
+        # 전체 작업 진행도에 대한 태스크 생성
+        main_task = progress.add_task("[cyan]Processing PNG files...", total=len(png_files))
+        
+        for png_file in png_files:
+            _, file_tile_size, x_offset, z_offset = os.path.splitext(os.path.basename(png_file))[0].split('_')
+            if file_tile_size != str(tile_size):
+                progress.update(main_task, advance=1)
+                print(f"Tile size mismatch: {file_tile_size} != {tile_size}. Skipping {png_file}")
+                continue
+
+            x_offset = int(x_offset)
+            z_offset = int(z_offset)
+            
+            block_size = int(tile_size * scale_ratio)
+            block_offset_x = int(x_offset * scale_ratio)
+            block_offset_z = int(z_offset * scale_ratio)
+            
+            world_path = os.path.join(output_dir, f'tile_{block_size}_{block_offset_x}_{block_offset_z}')
+            if not os.path.exists(world_path):
+                os.makedirs(world_path)
+
+            script = replace_params(script_contents, {
+                'heightmap_path': png_file,
+                'world_path': world_path,
+                'scale': scale, 
+            })
+            
+            temp_script_path = os.path.join(current_dir, 'script_temp.js')
+            with open(temp_script_path, 'w') as file:
+                file.write(script)
+            
+            # 각 서브프로세스에 대한 진행도 태스크 생성 (각 png_file에 대해)
+            subprocess_task = progress.add_task(f"[green]Processing {os.path.basename(png_file)}...", total=None)
+
+            # 서브프로세스를 실행하고, 해당 태스크 진행도를 관리
+            run_subprocess([wpscript_path, temp_script_path], progress, subprocess_task)
+
+            # 서브프로세스 완료 후 태스크 제거
+            progress.remove_task(subprocess_task)
+            shutil.rmtree(temp_script_path, ignore_errors=True)
+
+            # 전체 작업 진행도 업데이트
+            progress.update(main_task, advance=1)
+
+if __name__ == "__main__":
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+
+    wpscript_path = config['DEFAULT']['wpscript_path']
+    tile_size = int(config['DEFAULT']['tile_size'])
+    scale = int(config['DEFAULT']['scale'])
+
+    png_files = glob.glob(os.path.join(image_dir, 'tile_*.png'))
     
-    for png_file in png_files:
-        _, tile_width, i, tile_height, j = os.path.splitext(os.path.basename(png_file))[0].split('_')
-        world_path = os.path.join(output_dir, f'tile_{tile_width}_{i}_{tile_height}_{j}')
-        if not os.path.exists(world_path):
-            os.makedirs(world_path)
+    with open(os.path.join(current_dir, 'script.js'), 'r') as file:
+        script_contents = file.read()
 
-        script = replace_params(script_contents, {
-            'heightmap_path': png_file,
-            'world_path': world_path,
-            'tile_width': tile_width,
-            'tile_height': tile_height,
-            'width_index': i,
-            'height_index': j,
-            'scale': 20,
-            # 'scale': 5000,
-        })
-        
-        temp_script_path = os.path.join(current_dir, 'script_temp.js')
-        with open(temp_script_path, 'w') as file:
-            file.write(script)
-        
-        # 각 서브프로세스에 대한 진행도 태스크 생성 (각 png_file에 대해)
-        subprocess_task = progress.add_task(f"[green]Processing {os.path.basename(png_file)}...", total=100.0)
+    shutil.rmtree(output_dir, ignore_errors=True)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-        # 서브프로세스를 실행하고, 해당 태스크 진행도를 관리
-        run_subprocess([wpscript_path, temp_script_path], progress, subprocess_task)
-
-        # 서브프로세스 완료 후 태스크 제거
-        progress.remove_task(subprocess_task)
-        shutil.rmtree(temp_script_path, ignore_errors=True)
-
-        # 전체 작업 진행도 업데이트
-        progress.update(main_task, advance=1)
+    convert_to_worlds(wpscript_path, tile_size, scale, png_files)

@@ -4,3 +4,5 @@ images/*
 backups
 test
 *_temp*
+
+!template
