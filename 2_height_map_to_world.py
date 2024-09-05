@@ -131,6 +131,16 @@ if __name__ == "__main__":
 
     png_files = glob.glob(os.path.join(image_dir, 'tile_*.png'))
     
+    png_files_index = [
+        (
+            png_file,
+            int(os.path.splitext(os.path.basename(png_file))[0].split('_')[2]),
+            int(os.path.splitext(os.path.basename(png_file))[0].split('_')[3]),
+        ) for png_file in png_files
+    ]
+    png_files_index.sort(key=lambda x: (x[1], x[2]))
+    png_files = [png_file for png_file, _, _ in png_files_index]
+    
     with open(os.path.join(current_dir, 'script.js'), 'r') as file:
         script_contents = file.read()
 
