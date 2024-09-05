@@ -135,10 +135,9 @@ if __name__ == "__main__":
         script_contents = file.read()
 
     if os.path.exists(output_dir):
-        inp = input("Output directory already exists. Enter [y] to delete it. else remove directory and run again: ")
-        if inp.lower() != 'y':
-            exit(1)
-    shutil.rmtree(output_dir, ignore_errors=True)
+        inp = input("Output directory already exists. Enter [remove] to delete it. else exit program and manually handle it: ")
+        if inp.lower() == 'remove':
+            shutil.rmtree(output_dir, ignore_errors=True)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
