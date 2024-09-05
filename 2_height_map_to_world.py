@@ -115,6 +115,9 @@ def convert_to_worlds(wpscript_path: str, tile_size: int, scale: int, png_files:
             progress.remove_task(subprocess_task)
             shutil.rmtree(temp_script_path, ignore_errors=True)
 
+            new_file_name = f"done_{os.path.basename(png_file)}"
+            new_file_path = os.path.join(os.path.dirname(png_file), new_file_name)
+            os.rename(png_file, new_file_path)
             # 전체 작업 진행도 업데이트
             progress.update(main_task, advance=1)
 
@@ -131,6 +134,10 @@ if __name__ == "__main__":
     with open(os.path.join(current_dir, 'script.js'), 'r') as file:
         script_contents = file.read()
 
+    if os.path.exists(output_dir):
+        inp = input("Output directory already exists. Enter [y] to delete it. else remove directory and run again: ")
+        if inp.lower() != 'y':
+            exit(1)
     shutil.rmtree(output_dir, ignore_errors=True)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
