@@ -13,9 +13,9 @@
 
 # 실행 방법
 
-1. 사전 준비
+## 1.사전 준비
 
-## `config.ini` 작성
+### `config.ini` 작성
 
 - wpscript_path
 
@@ -45,7 +45,7 @@ tile_size=256
 scale=1000
 ```
 
-## `script.js` 파일 수정
+### `script.js` 파일 수정
 
 큰 크기의 height map을 먼저 적용하기 전에 작은 크기의 height map을 worldpainter에서 불러오면서 값을 설정해야합니다.
 
@@ -62,17 +62,6 @@ scale=1000
 ### `script.js` 예시
 
 ```javascript
-/**
- * param
- *   heightmap_path: string
- *   world_path: string
- *   scale: int
- *   tile_width: int
- *   tile_height: int
- *   width_index: int
- *   height_index: int
- */
-
 var heightMap = wp.getHeightMap()
   .fromFile('{{ param.heightmap_path }}')
   .go();
@@ -110,9 +99,11 @@ wp.exportWorld(world)
 print("save world done.")
 ```
 
-2. (optional) height map 값 보정
+## 2. (optional) height map 값 보정
 
-> `python 0_stretch_height_map.py`
+```bash
+python 0_stretch_height_map.py
+```
 
 사용할 height map 의 값의 범위를 조정할 때 사용합니다. 낮은 값에는 작은 가중치를 높은 값에는 높은 가중치를 곱하여 더욱 극적인 월드를 생성할 수 있습니다.
 
@@ -120,17 +111,21 @@ print("save world done.")
 
 가중치를 변경하려면 `0_stretch_height_map.py`의 `apply_scaling` 함수를 변경할 수 있습니다.
 
-3. 거대한 height map을 여러 개의 조각으로 분할
+## 3. 거대한 height map을 여러 개의 조각으로 분할
 
-> `python 1_split_height_map.py`
+```bash
+python 1_split_height_map.py
+```
 
 큰 height map의 이미지를 `config.ini`에 설정한 tile 값으로 분할합니다.
 
 분할된 이미지는 `cwd`의 `temp-1` 디렉토리에 저장됩니다. 저장된 이미지 형식은 `tile_{tile_pixel_size}_{x_offset}_{z_offset}.png` 입니다.
 
-4. 각각의 height map 조각을 마인크래프트 맵으로 변환
+## 4. 각각의 height map 조각을 마인크래프트 맵으로 변환
 
-> `python 2_height_map_to_world.py`
+```bash
+python 2_height_map_to_world.py
+```
 
 `temp-1` 디렉토리에 저장된 height map tile의 각각을 `config.ini`에 설정한 scale을 사용하여 마인크래프트 월드 형식으로 변환합니다. 이 때 사용되는 스크립트는 프로젝트 루트의 `script.js`를 사용합니다.
 
@@ -143,9 +138,11 @@ print("save world done.")
 > 13600k CPU에서 tile_size 256, scale 1000일 때 하나의 조각에 대략 5분이 소요되었습니다.
 > 하나의 타일을 내보낼 때 사용된 메모리는 60GB 이상으로 추정됩니다.
 
-5. 마인크래프트 월드 파일 (.mca)를 병합
+## 5. 마인크래프트 월드 파일 (.mca)를 병합
 
-> `python 3_merge_worlds.py`
+```bash
+python 3_merge_worlds.py
+```
 
 `temp-2` 폴더의 마인크래프트 월드에 대해서 하나의 마인크래프트 월드로 병합을 진행합니다. 폴더 내의 제일 처음 월드에서 `level.dat` 파일을 복사합니다.
 
