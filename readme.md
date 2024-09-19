@@ -127,7 +127,7 @@ python 1_split_height_map.py
 python 2_height_map_to_world.py
 ```
 
-`temp-1` 디렉토리에 저장된 height map tile의 각각을 `config.ini`에 설정한 scale을 사용하여 마인크래프트 월드 형식으로 변환합니다. 이 때 사용되는 스크립트는 프로젝트 루트의 `script.js`를 사용합니다.
+`temp-1` 디렉토리에 저장된 height map 타일 이미지 각각을 `config.ini`에 설정한 scale을 사용하여 마인크래프트 월드 형식으로 변환합니다. 이 때 사용되는 스크립트는 프로젝트 루트의 `script.js`를 사용합니다.
 
 변환된 마인크래프트 월드는 `temp-2` 폴더에 저장됩니다. 저장된 마인크래프트 월드의 폴더명은 `tile_{tile_world_size}_{x_offset}_{z_offset}` 입니다.
 
